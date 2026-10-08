@@ -1,0 +1,13 @@
+services:
+  signalbot:
+    build: .
+    image: signalbot:latest
+    container_name: signalbot
+    restart: unless-stopped
+    environment:
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?Set ADMIN_TOKEN in .env}
+      SUMMARY_INTERVAL_MINUTES: ${SUMMARY_INTERVAL_MINUTES:-10}
+      DEVICE_NAME: ${DEVICE_NAME:-signalbot}
+      TIME_ZONE: ${TIME_ZONE:-UTC}
+    volumes:
+      - ./data:/data
