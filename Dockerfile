@@ -26,11 +26,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=build /app/target/signalbot.jar /app/signalbot.jar
+COPY --from=build /app/target/signalmodbot.jar /app/signalmodbot.jar
 
 ENV ADMIN_TOKEN=""
 ENV SUMMARY_INTERVAL_MINUTES=60
-ENV DEVICE_NAME=signalbot
+ENV DEVICE_NAME=signalmodbot
 ENV TIME_ZONE=UTC
 ENV DATA_DIR=/data
 VOLUME /data
@@ -38,6 +38,6 @@ VOLUME /data
 # Default: run the bot. Other modes:
 #   link        one-time: link to an existing Signal account (QR code in the terminal)
 #   settings    change saved fallback settings (used when env vars are unset)
-# e.g.  docker compose run --rm signalbot link
-ENTRYPOINT ["java", "-jar", "/app/signalbot.jar"]
+# e.g.  docker compose run --rm signalmodbot link
+ENTRYPOINT ["java", "--enable-native-access=ALL-UNNAMED", "-jar", "/app/signalmodbot.jar"]
 CMD ["run"]

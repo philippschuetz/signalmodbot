@@ -5,7 +5,7 @@ import com.philippschuetz.signalmodbot.bot.CommandRouter;
 import com.philippschuetz.signalmodbot.bot.IncomingMessageHandler;
 import com.philippschuetz.signalmodbot.cli.QrCode;
 import com.philippschuetz.signalmodbot.cli.SignalCliProcess;
-import com.philippschuetz.signalmodbot.cli.Prompt;
+import com.philippschuetz.signalmodbot.config.Prompt;
 import com.philippschuetz.signalmodbot.config.Settings;
 import com.philippschuetz.signalmodbot.groups.DynamicMembership;
 import com.philippschuetz.signalmodbot.groups.PollStore;
@@ -60,7 +60,7 @@ public class Main {
 
         String configuredDeviceName = System.getenv("DEVICE_NAME");
         String deviceName = configuredDeviceName == null || configuredDeviceName.isBlank()
-                ? Prompt.ask("Name for this device in Signal's linked devices list", "signalbot")
+                ? Prompt.ask("Name for this device in Signal's linked devices list", "signalmodbot")
                 : configuredDeviceName.trim();
         SignalCliProcess.LinkAttempt attempt = cli.startLink(deviceName);
 
@@ -93,7 +93,7 @@ public class Main {
     private static void runBot(SignalCliProcess cli, Settings settings) throws Exception {
         List<String> accounts = cli.listAccounts();
         if (accounts.isEmpty()) {
-            throw new IllegalStateException("No linked Signal account found. Link one first:  docker compose run --rm signalbot link");
+            throw new IllegalStateException("No linked Signal account found. Link one first:  docker compose run --rm signalmodbot link");
         }
         if (accounts.size() > 1) {
             throw new IllegalStateException("Found " + accounts.size() + " accounts " + accounts +
@@ -122,7 +122,7 @@ public class Main {
             SummaryScheduler scheduler = new SummaryScheduler(summaryBuilder, pollStore, api);
             scheduler.start(settings.summaryIntervalMinutes());
 
-            log.info("signalbot running as {}. Waiting for messages...", account);
+            log.info("signalmodbot running as {}. Waiting for messages...", account);
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("Shutting down...");

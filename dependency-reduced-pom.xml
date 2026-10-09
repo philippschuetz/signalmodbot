@@ -5,7 +5,7 @@
   <artifactId>signalmodbot</artifactId>
   <version>0.0.0</version>
   <build>
-    <finalName>signalbot</finalName>
+    <finalName>signalmodbot</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>

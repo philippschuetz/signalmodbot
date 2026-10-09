@@ -1,4 +1,4 @@
-# signalbot
+# signalmodbot
 
 A Java bot for administering Signal group chats, running in a single Docker
 container. It gets its Signal identity either by linking to your existing
@@ -19,7 +19,8 @@ work; the Java app is the bot logic on top.
   below.
 - Logs every message sent in chats the bot is a member of.
 - Posts a per-group message summary back into the chat, either on a timer
-  (`SUMMARY_INTERVAL_MINUTES`) or on demand (`/summary <chat>`).
+  (`SUMMARY_INTERVAL_MINUTES`) or on demand (`/summary <chat>`), with message
+  and whitespace-separated word counts for each group.
 
 ## About "groups"
 
@@ -93,12 +94,12 @@ The bot runs `signal-cli link` and appears under **Settings -> Linked Devices**
 like Signal Desktop. No separate phone number is needed.
 
 ```sh
-docker compose run --rm signalbot link
+docker compose run --rm signalmodbot link
 ```
 
 The QR code is printed in the terminal. On your phone, open **Signal ->
 Settings -> Linked Devices -> Link New Device** and scan it. The link command
-uses `DEVICE_NAME` from `.env` (default `signalbot`).
+uses `DEVICE_NAME` from `.env` (default `signalmodbot`).
 
 ### 4. Run it
 
@@ -120,7 +121,7 @@ DM it `/auth`, `/chats`, `/poll`, `/count`.
 |-----------------------------|----------|-------------|---------|
 | `ADMIN_TOKEN`               | yes      | -           | Shared secret the admin DMs to authenticate; set it in `.env` |
 | `SUMMARY_INTERVAL_MINUTES`  | no       | `10`        | Auto-summary cadence; `0` disables the timer |
-| `DEVICE_NAME`               | no       | `signalbot` | Name shown in the Linked Devices list when running `link` |
+| `DEVICE_NAME`               | no       | `signalmodbot` | Name shown in the Linked Devices list when running `link` |
 | `TIME_ZONE`                 | no       | `UTC`       | IANA time-zone ID used for timestamps in summaries (for example, `Europe/Berlin`) |
 | `DATA_DIR`                  | fixed    | `/data`     | Container path for the persisted Signal account and bot state |
 

@@ -49,41 +49,54 @@ public class SummaryBuilder {
         List<MessageStore.MessageRecord> messages = store.messagesSince(chatId, since, pollTimestamp);
 
         Map<String, Integer> counts = new LinkedHashMap<>();
+        Map<String, Integer> wordCounts = new LinkedHashMap<>();
         for (String g : groupNames) {
             counts.put(g, 0);
+            wordCounts.put(g, 0);
         }
         int unsortedCount = 0;
+        int unsortedWordCount = 0;
 
         for (MessageStore.MessageRecord m : messages) {
             String groupName = m.senderUuid() != null ? dynamicMembership.groupFor(chatId, m.senderUuid()) : null;
             if (groupName == null && m.senderNumber() != null) groupName = dynamicMembership.groupFor(chatId, m.senderNumber());
+            int words = countWords(m.body());
 
             if (groupName == null || !groupNames.contains(groupName)) {
                 unsortedCount++;
+                unsortedWordCount += words;
             } else {
                 counts.merge(groupName, 1, Integer::sum);
+                wordCounts.merge(groupName, words, Integer::sum);
             }
         }
 
-        String sinceLabel = summaryStart == 0 ? "the beginning" : formatTime(summaryStart);
+        String sinceLabel = summaryStart == 0 ? "dem Anfang" : formatTime(summaryStart);
         StringBuilder sb = new StringBuilder();
-        sb.append("📊 Summary since ").append(sinceLabel).append(":\n");
+        sb.append("📊 Zusammenfassung seit ").append(sinceLabel).append(":\n");
         for (String g : groupNames) {
             int c = counts.get(g);
-            sb.append("\n• ").append(g).append(": ").append(c).append(" message").append(c == 1 ? "" : "s");
+            sb.append("\n• ").append(g).append(": ").append(c).append(" Nachricht").append(c == 1 ? "" : "s")
+                    .append(", ").append(wordCounts.get(g)).append(" Wörter");
         }
         if (unsortedCount > 0) {
-            sb.append("\n\n• Unsorted: ").append(unsortedCount).append(" message")
-              .append(unsortedCount == 1 ? "" : "s");
+            sb.append("\n\n• Ohne Gruppe: ").append(unsortedCount).append(" Nachricht")
+              .append(unsortedCount == 1 ? "" : "en")
+              .append(", ").append(unsortedWordCount).append(" Wörter");
         }
 
         store.markSummarized(chatId, now);
         return sb.toString();
     }
 
+    private int countWords(String body) {
+        if (body == null || body.isBlank()) return 0;
+        return body.trim().split("\\s+").length;
+    }
+
     private String formatTime(long epochMillis) {
         return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm (VV)")
-                .withZone(timeZone)
+//                .withZone(timeZone)
                 .format(Instant.ofEpochMilli(epochMillis));
     }
 }

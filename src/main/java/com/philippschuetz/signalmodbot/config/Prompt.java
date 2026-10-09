@@ -1,4 +1,4 @@
-package com.philippschuetz.signalmodbot.cli;
+package com.philippschuetz.signalmodbot.config;
 
 import java.io.BufferedReader;
 import java.io.Console;
@@ -10,7 +10,7 @@ public final class Prompt {
 
     private static final String NO_TERMINAL =
             "The bot needs a value but no terminal is attached to ask for it. " +
-                    "Run this once interactively, e.g.:  docker compose run --rm signalbot settings";
+                    "Run this once interactively, e.g.:  docker compose run --rm signalmodbot settings";
 
     private static final BufferedReader STDIN =
             new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));

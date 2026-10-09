@@ -3,7 +3,6 @@ package com.philippschuetz.signalmodbot.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
-import com.philippschuetz.signalmodbot.cli.Prompt;
 
 import java.io.IOException;
 import java.nio.file.Files;

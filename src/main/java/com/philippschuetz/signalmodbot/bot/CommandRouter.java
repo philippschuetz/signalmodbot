@@ -79,20 +79,20 @@ public class CommandRouter {
 
         try {
             if (cmd.equals("/auth")) {
-                if (parts.length < 2) { reply(senderId, "Usage: /auth <token>"); return; }
+                if (parts.length < 2) { reply(senderId, "Benutzung: /auth <token>"); return; }
                 boolean ok = auth.tryAuthenticate(senderId, parts[1]);
-                reply(senderId, ok ? "Authenticated. Send /help for commands." : "Invalid token.");
+                reply(senderId, ok ? "Authentifizierung erfolgreich, /help für verfügbare Befehle" : "Ungültiges Token");
                 return;
             }
 
             if (!auth.isAdmin(senderId)) {
-                reply(senderId, "Not authenticated. Send /auth <token> first.");
+                reply(senderId, "Nicht authentifiziert, /auth <token> zur Authentifizierung");
                 return;
             }
 
             switch (cmd) {
                 case "/help" -> reply(senderId, helpText());
-                case "/deauth" -> { auth.deauth(senderId); reply(senderId, "Deauthenticated."); }
+                case "/deauth" -> { auth.deauth(senderId); reply(senderId, "Deauthentifizierung erfolgreich"); }
                 case "/chats" -> reply(senderId, listChats());
                 case "/poll" -> {
                     requireArgs(parts, 3, "/poll <chat> <group1> <group2> ...");
@@ -123,10 +123,10 @@ public class CommandRouter {
                     ChatRef chat = resolveChat(parts[1]);
                     String summary = summaryBuilder.buildAndMark(chat.id());
                     if (summary == null) {
-                        reply(senderId, "No groups defined for '" + chat.name() + "' yet -- run /poll first.");
+                        reply(senderId, "Keine Gruppen für '" + chat.name() + "' definiert, /poll zur Gruppenwahl");
                     } else {
                         api.sendToGroup(chat.id(), summary);
-                        reply(senderId, "Summary posted in '" + chat.name() + "'.");
+                        reply(senderId, "Zusammenfassung in '" + chat.name() + "' gesendet.");
                     }
                 }
                 case "/summaryall" -> {
@@ -134,20 +134,20 @@ public class CommandRouter {
                         String summary = summaryBuilder.buildAndMark(chatId);
                         if (summary != null) api.sendToGroup(chatId, summary);
                     }
-                    reply(senderId, "Summaries posted.");
+                    reply(senderId, "Zusammenfassungen gesendet");
                 }
-                default -> reply(senderId, "Unknown command. Send /help.");
+                default -> reply(senderId, "Unbekannter Befehl, /help für verfügbare Befehle");
             }
         } catch (IllegalArgumentException e) {
             reply(senderId, e.getMessage());
         } catch (Exception e) {
             log.error("Command failed: {}", text, e);
-            reply(senderId, "Something went wrong handling that command: " + describe(e));
+            reply(senderId, "Etwas ist schiefgelaufen bei der Ausführung dieses Befehls: " + describe(e));
         }
     }
 
     private void requireArgs(String[] parts, int minLength, String usage) {
-        if (parts.length < minLength) throw new IllegalArgumentException("Usage: " + usage);
+        if (parts.length < minLength) throw new IllegalArgumentException("Benutzung: " + usage);
     }
 
     // ---------------------------------------------------------------- chats
@@ -172,13 +172,13 @@ public class CommandRouter {
     /** Accepts the number shown by /chats, or a raw chat id. Every reply echoes the chat's name so a shifted number is obvious. */
     private ChatRef resolveChat(String ref) throws Exception {
         if (ref.matches("-\\d+")) {
-            throw new IllegalArgumentException("Chat numbers must be positive. Send /chats to see the list.");
+            throw new IllegalArgumentException("Chat müssen positiv sein, /chats für verfügbare Chats");
         }
         List<ChatRef> chats = fetchChats();
         if (ref.matches("\\d{1,3}")) {
             int idx = Integer.parseInt(ref);
             if (idx < 1 || idx > chats.size()) {
-                throw new IllegalArgumentException("There's no chat number " + ref + ". Send /chats to see the list.");
+                throw new IllegalArgumentException("Chat mit Nummer " + ref + " nicht gefunden, /chats für verfügbare Chats");
             }
             return chats.get(idx - 1);
         }
@@ -189,13 +189,12 @@ public class CommandRouter {
     private String listChats() throws Exception {
         List<ChatRef> chats = fetchChats();
         if (chats.isEmpty()) {
-            return "The bot isn't in any group chats yet. Add its Signal account to a group, then send /chats again.";
+            return "Der Bot wurde noch keinen Chats hinzugefügt. Nach Einladung in mindestens einen Chat, /chats erneut ausführen";
         }
-        StringBuilder sb = new StringBuilder("Group chats the bot is in (use the number in other commands):");
+        StringBuilder sb = new StringBuilder("Verfügbare Chats (Nummer für weitere Befehle verwenden):");
         for (int i = 0; i < chats.size(); i++) {
             sb.append("\n").append(i + 1).append(". ").append(chats.get(i).name());
         }
-        sb.append("\n\nNext: /poll <number> <group1> <group2> ...");
         return sb.toString();
     }
 
@@ -204,10 +203,10 @@ public class CommandRouter {
     /** Starts a fresh group selection, clearing every member's previous assignment. */
     private String startPoll(ChatRef chat, String[] groupNames) throws Exception {
         if (groupNames.length < 2) {
-            return "A poll needs at least two group names.";
+            return "Für die Gruppenwahl müssen mindestens 2 Gruppen angegeben werden, z.B. /poll <chat> GruppeA GruppeB";
         }
         if (groupNames.length > EMOJI_POOL.length) {
-            return "Too many groups for a reaction poll (max " + EMOJI_POOL.length + ").";
+            return "Zu viele Gruppen für die Gruppenwahl (maximal " + EMOJI_POOL.length + ")";
         }
         Map<String, String> emojiToGroup = new LinkedHashMap<>();
         for (int i = 0; i < groupNames.length; i++) {
@@ -217,27 +216,27 @@ public class CommandRouter {
         long ts = api.sendToGroup(chat.id(), pollMessage(emojiToGroup));
         dynamicMembership.clear(chat.id());
         pollStore.startPoll(chat.id(), ts, emojiToGroup);
-        return "New poll posted in '" + chat.name() + "' with " + groupNames.length +
-                " group(s). Previous group assignments were reset. " +
-                "Send /count to check progress.";
+        return "Neue Gruppenwahl in '" + chat.name() + "' mit " + groupNames.length +
+                " Gruppen. Vorherige Gruppenwahl wurde zurückgesetzt. " +
+                "/count für aktuellen Stand.";
     }
 
     /** Reposts the current choices for late joiners without clearing existing assignments. */
     private String resendPoll(ChatRef chat) throws Exception {
         PollStore.PollInfo poll = pollStore.activePoll(chat.id());
         if (poll == null) {
-            return "No poll is saved for '" + chat.name() + "'. Start one with /poll first.";
+            return "Keine Gruppenwahl für '" + chat.name() + "' gespeichert. Neue Gruppenwahl mit /poll starten.";
         }
 
         long ts = api.sendToGroup(chat.id(), pollMessage(poll.emojiToGroup()));
         pollStore.startPoll(chat.id(), ts, poll.emojiToGroup());
-        return "Poll resent in '" + chat.name() + "'. Existing group assignments were kept.";
+        return "Gruppenwahl erneut gesendet in '" + chat.name() + "'. Vorhandene Gruppenwahlen wurden behalten.";
     }
 
     private String pollMessage(Map<String, String> emojiToGroup) {
-        StringBuilder sb = new StringBuilder("Pick your group by reacting to this message:\n");
+        StringBuilder sb = new StringBuilder("Wähle deine Gruppe, indem du auf diese Nachricht reagierst:\n");
         emojiToGroup.forEach((emoji, groupName) -> sb.append("\n").append(emoji).append(" ").append(groupName));
-        sb.append("\n\nReact with a different one anytime to switch. Remove your reaction to leave.");
+        sb.append("\n\nÄndere deine Reaktion, um die Gruppe zu wechseln. Entferne deine Reaktion, um die Gruppe zu verlassen.");
         return sb.toString();
     }
 
@@ -249,11 +248,11 @@ public class CommandRouter {
      */
     private String countGroups(ChatRef chat) {
         PollStore.PollInfo poll = pollStore.activePoll(chat.id());
-        if (poll == null) return "No poll has been posted in '" + chat.name() + "' yet. Run /poll first.";
+        if (poll == null) return "Keine Gruppenwahl für '" + chat.name() + "' gespeichert. Neue Gruppenwahl mit /poll starten.";
 
         Map<String, Set<String>> byGroup = dynamicMembership.byGroup(chat.id());
         Set<String> chosenIds = new HashSet<>();
-        StringBuilder sb = new StringBuilder("Group counts for '" + chat.name() + "':");
+        StringBuilder sb = new StringBuilder("Gruppenzählung für '" + chat.name() + "':");
         int chosen = 0;
         for (String groupName : new LinkedHashSet<>(poll.emojiToGroup().values())) {
             Set<String> members = byGroup.getOrDefault(groupName, Set.of());
@@ -261,7 +260,7 @@ public class CommandRouter {
             chosen += members.size();
             sb.append("\n• ").append(groupName).append(": ").append(members.size());
         }
-        sb.append("\n\nChosen a group: ").append(chosen);
+        sb.append("\n\nGruppe gewählt: ").append(chosen);
 
         List<MemberRef> members = fetchMemberRefs(chat.id());
         if (members == null) {
@@ -276,20 +275,20 @@ public class CommandRouter {
                         || (m.number() != null && chosenIds.contains(m.number()));
                 if (!has) notChosen++;
             }
-            sb.append("\nHaven't chosen yet: ").append(notChosen).append(" (of ").append(total).append(" members)");
+            sb.append("\nGruppe noch nicht gewählt: ").append(notChosen).append(" (von ").append(total).append(" Mitgliedern)");
         }
         return sb.toString();
     }
 
     private String describeGroups(ChatRef chat) {
         PollStore.PollInfo poll = pollStore.activePoll(chat.id());
-        if (poll == null) return "No poll has been posted in '" + chat.name() + "' yet. Run /poll first.";
+        if (poll == null) return "Keine Gruppenwahl für '" + chat.name() + "' gespeichert. Neue Gruppenwahl mit /poll starten.";
         Map<String, Set<String>> byGroup = dynamicMembership.byGroup(chat.id());
-        StringBuilder sb = new StringBuilder("Who picked what in '" + chat.name() + "':");
+        StringBuilder sb = new StringBuilder("Gruppenwahl mit Name in '" + chat.name() + "':");
         for (String groupName : new LinkedHashSet<>(poll.emojiToGroup().values())) {
             Set<String> members = byGroup.getOrDefault(groupName, Set.of());
             sb.append("\n• ").append(groupName).append(": ")
-              .append(members.isEmpty() ? "(nobody yet)" : members.stream()
+              .append(members.isEmpty() ? "(ungewählt)" : members.stream()
                       .map(memberId -> displayMemberName(chat.id(), memberId))
                       .sorted()
                       .collect(java.util.stream.Collectors.joining(", ")));
@@ -310,7 +309,7 @@ public class CommandRouter {
         } catch (Exception e) {
             log.warn("Could not resolve display name for member in chat {}", chatId, e);
         }
-        return memberId.matches("\\+[0-9]+") ? memberId : "Unknown member";
+        return memberId.matches("\\+[0-9]+") ? memberId : "Unbekanntes Mitglied";
     }
 
     // -------------------------------------------------------------- members
@@ -355,9 +354,9 @@ public class CommandRouter {
     private String listGroupMembers(ChatRef chat) {
         List<MemberRef> members = fetchMemberRefs(chat.id());
         if (members == null) {
-            return "Couldn't get the member list for '" + chat.name() + "' from Signal. Try /seen instead.";
+            return "Mitgliederliste für '" + chat.name() + "' nicht verfügbar, versuche /seen";
         }
-        StringBuilder sb = new StringBuilder("Members of '" + chat.name() + "':");
+        StringBuilder sb = new StringBuilder("Mitglieder von '" + chat.name() + "':");
         for (MemberRef m : members) {
             if (isBot(m)) continue;
             String memberId = m.uuid() != null ? m.uuid() : m.number();
@@ -369,9 +368,9 @@ public class CommandRouter {
     private String listSeenSenders(ChatRef chat) throws Exception {
         var senders = store.distinctSenders(chat.id());
         if (senders.isEmpty()) {
-            return "Nobody has posted in '" + chat.name() + "' since the bot joined. Try /members instead.";
+            return "Keine Nachrichten in '" + chat.name() + "' seit dem Beitritt des Bots, versuche /members";
         }
-        StringBuilder sb = new StringBuilder("People the bot has seen post in '" + chat.name() + "':");
+        StringBuilder sb = new StringBuilder("Chatmitglieder, deren Nachrichten in '" + chat.name() + "' registriert wurden:");
         for (var m : senders) {
             String memberId = m.senderUuid() != null ? m.senderUuid() : m.senderNumber();
             sb.append("\n• ").append(displayMemberName(chat.id(), memberId));
@@ -381,21 +380,23 @@ public class CommandRouter {
 
     private String helpText() {
         return """
-                Workflow: add the bot to a group in Signal, then here in this DM:
-                1. /chats — list the bot's group chats (numbered)
-                2. /poll <chat> <group1> <group2> ... — start a fresh poll and reset assignments
-                3. /pollresend <chat> — repost the saved poll without resetting assignments
-                4. /count <chat> — confirm how many people are in each group
+                Nach Einladung des Bots in mindestens einen Signal Chat, kann dieser per Direktnachricht gesteuert werden.
+                Die folgenden Befehle sind verfügbar:
+                
+                /chats - Nummerierte (<chat>) Liste der verfügbaren Signal Chats
+                
+                /poll <chat> <group1> <group2> ... - Gruppenwahl starten (löscht vorherige Zuweisungen)
+                /pollresend <chat> - letzte Gruppenwahl erneut posten (bestehende Zuweisungen bleiben)
+                
+                /count <chat> - Accountanzahl pro Chat und Stand der Gruppenwahl
+                /groups <chat> - Gruppenwahl mit den zugewiesenen Accounts
+                /members <chat> - Auflistung der Chatmitglieder
+                /seen <chat> - Accounts, die seit dem Beitritt des Bots im Chat gepostet haben
 
-                <chat> is the number from /chats.
+                /summary <chat> - Zusammenfassung in gewählten Chat senden
+                /summaryall - Zusammenfassungen in alle Chats senden
 
-                Other commands:
-                /groups <chat> — who picked what (display names)
-                /members <chat> — the chat's full member list from Signal
-                /seen <chat> — people the bot has seen post (display names)
-                /summary <chat> — post a per-group message summary now
-                /summaryall — post summaries for every chat with a poll
-                /deauth — forget your admin authentication
+                /deauth - Aufhebung der Authentifizierung
                 """;
     }
 
