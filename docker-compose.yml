@@ -1,6 +1,10 @@
 services:
   signalmodbot:
-    build: .
+    build:
+      context: .
+      args:
+        BOT_COMMIT: ${BOT_COMMIT:-unknown}
+        SIGNAL_CLI_VERSION: ${SIGNAL_CLI_VERSION:-0.14.9}
     image: signalmodbot:latest
     container_name: signalmodbot
     restart: unless-stopped

@@ -1,8 +1,11 @@
 package com.philippschuetz.signalmodbot;
 
 import com.philippschuetz.signalmodbot.bot.AdminAuth;
+import com.philippschuetz.signalmodbot.bot.BotInfoCommands;
 import com.philippschuetz.signalmodbot.bot.CommandRouter;
+import com.philippschuetz.signalmodbot.bot.GroupChatCommands;
 import com.philippschuetz.signalmodbot.bot.IncomingMessageHandler;
+import com.philippschuetz.signalmodbot.bot.SummaryCommands;
 import com.philippschuetz.signalmodbot.cli.QrCode;
 import com.philippschuetz.signalmodbot.cli.SignalCliProcess;
 import com.philippschuetz.signalmodbot.config.Prompt;
@@ -114,7 +117,12 @@ public class Main {
             PollStore pollStore = new PollStore(DATA_DIR);
             DynamicMembership dynamicMembership = new DynamicMembership(DATA_DIR);
             SummaryBuilder summaryBuilder = new SummaryBuilder(pollStore, dynamicMembership, store);
-            CommandRouter router = new CommandRouter(auth, summaryBuilder, api, store, pollStore, dynamicMembership, account);
+            GroupChatCommands groupCommands =
+                    new GroupChatCommands(api, store, pollStore, dynamicMembership, account);
+            SummaryCommands summaryCommands = new SummaryCommands(api, summaryBuilder, pollStore);
+            BotInfoCommands botInfoCommands =
+                    new BotInfoCommands(account, settings.summaryIntervalMinutes());
+            CommandRouter router = new CommandRouter(auth, api, groupCommands, summaryCommands, botInfoCommands);
             IncomingMessageHandler handler = new IncomingMessageHandler(store, router, pollStore, dynamicMembership);
 
             rpc.onNotification(handler::onNotification);

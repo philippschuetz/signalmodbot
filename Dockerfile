@@ -1,10 +1,11 @@
 # ---- Build stage: compile the Java app ----
 FROM docker.io/maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
+ARG BOT_COMMIT=unknown
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
 COPY src ./src
-RUN mvn -B -q package
+RUN mvn -B -q package -Dbuild.commit="${BOT_COMMIT}"
 
 # ---- Runtime stage ----
 # Must be glibc-based (not alpine/musl): signal-cli bundles a native
@@ -16,6 +17,7 @@ FROM docker.io/eclipse-temurin:25-jre
 # the latest version and rebuild with --build-arg SIGNAL_CLI_VERSION=x.y.z.
 # Current signal-cli requires at least JRE 25 (see its README), hence the base image.
 ARG SIGNAL_CLI_VERSION=0.14.9
+ARG BOT_COMMIT=unknown
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
     curl -fsSL -o /tmp/signal-cli.tar.gz \
@@ -32,6 +34,8 @@ ENV ADMIN_TOKEN=""
 ENV SUMMARY_INTERVAL_MINUTES=60
 ENV DEVICE_NAME=signalmodbot
 ENV TIME_ZONE=UTC
+ENV SIGNAL_CLI_VERSION=${SIGNAL_CLI_VERSION}
+ENV BOT_COMMIT=${BOT_COMMIT}
 ENV DATA_DIR=/data
 VOLUME /data
 

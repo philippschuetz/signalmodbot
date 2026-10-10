@@ -65,7 +65,8 @@ are no longer used.
 Other DM commands: `/groups <chat>` (who picked what, by display name),
 `/members <chat>` (group members by display name), `/seen <chat>` (people the
 bot has seen post, by display name),
-`/summary <chat>` / `/summaryall` (per-group message summaries), `/help`.
+`/summary <chat>` / `/summaryall` (per-group message summaries), `/info` (bot
+software, signal-cli, Java runtime, uptime, and configuration), `/help`.
 Every reply names the chat it acted on, so if you add the bot to another
 group and the `/chats` numbering shifts, you'll notice.
 
@@ -85,8 +86,21 @@ cp .env.example .env
 ### 2. Build the image
 
 ```sh
-docker compose build
+BOT_COMMIT="$(git rev-parse --short HEAD)" docker compose build
 ```
+
+The build embeds the software version and short commit hash for `/info`.
+`SIGNAL_CLI_VERSION` can also be set in `.env` to select the signal-cli version
+used by the image (default: `0.14.9`).
+
+### Publishing from GitHub Actions
+
+The `.github/workflows/publish-image.yml` workflow builds and publishes a
+date-tagged image to `ghcr.io/<owner>/<repository>` when a commit is pushed to
+`main`. It uses the repository's `GITHUB_TOKEN`, embeds the short commit hash
+for `/info`, adds Docker metadata labels, and generates a build provenance
+attestation. Ensure the repository's Actions settings allow `GITHUB_TOKEN` to
+write packages and publish attestations.
 
 ### 3. Link the bot to a Signal account (one-time)
 
