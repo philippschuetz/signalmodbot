@@ -36,6 +36,7 @@ public final class BotInfoCommands {
                 Laufzeit: %s
                 Zeitzone: %s
                 Automatische Zusammenfassungen: %s
+                Quellcode: https://github.com/philippschuetz/signalmodbot
                 """.formatted(version, commit, signalCliVersion, account,
                 System.getProperty("java.runtime.version"), formatUptime(), timeZone, summaries).strip();
     }
