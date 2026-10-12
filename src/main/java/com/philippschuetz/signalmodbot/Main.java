@@ -33,18 +33,24 @@ public class Main {
     private static final String SIGNAL_CLI_BIN = "signal-cli"; // on the PATH inside the image
 
     public static void main(String[] args) throws Exception {
-        String mode = args.length > 0 ? args[0] : "run";
+        if (args.length > 1 || (args.length == 1 && !"settings".equals(args[0]))) {
+            System.err.println("Usage: signalmodbot [settings]");
+            System.exit(2);
+            return;
+        }
+
         Files.createDirectories(DATA_DIR);
         SignalCliProcess cli = new SignalCliProcess(SIGNAL_CLI_BIN, DATA_DIR);
 
         try {
             Settings settings = new Settings(DATA_DIR);
-            switch (mode) {
-                case "link" -> runLink(cli, settings);
-                case "settings" -> settings.promptAll();
-                case "run" -> runBot(cli, settings);
-                default -> System.out.println("Unknown mode '" + mode + "'. Use one of: link, run, settings");
+            if (args.length == 1) {
+                settings.promptAll();
+                return;
             }
+
+            if (linkDeviceOnStartup()) linkDevice(cli);
+            runBot(cli, settings);
         } catch (IllegalStateException e) {
             log.error("Application cannot start: {}", e.getMessage(), e);
             System.err.println(e.getMessage()); // expected, user-fixable problems
@@ -52,14 +58,19 @@ public class Main {
         }
     }
 
-    private static void runLink(SignalCliProcess cli, Settings settings) throws Exception {
+    private static boolean linkDeviceOnStartup() {
+        String value = System.getenv("LINK_DEVICE");
+        if (value == null || value.isBlank() || "false".equalsIgnoreCase(value.trim())) return false;
+        if ("true".equalsIgnoreCase(value.trim())) return true;
+        throw new IllegalStateException("LINK_DEVICE must be true or false");
+    }
+
+    private static void linkDevice(SignalCliProcess cli) throws Exception {
         List<String> existing = cli.listAccounts();
         if (!existing.isEmpty()) {
-            System.out.println("Already linked to " + existing.get(0) + ". Only one account can be linked at a time.");
-            System.out.println("To link a different account, delete the data volume first (this also deletes the bot's");
-            System.out.println("settings and message history):  docker compose down -v");
-            return;
+            log.warn("LINK_DEVICE=true: replacing {} existing Signal account(s)", existing.size());
         }
+        cli.clearAccounts();
 
         String configuredDeviceName = System.getenv("DEVICE_NAME");
         String deviceName = configuredDeviceName == null || configuredDeviceName.isBlank()
@@ -80,23 +91,17 @@ public class Main {
 
         int exitCode = cli.awaitLinkCompletion(attempt.process(), 180);
         if (exitCode != 0) {
-            System.out.println("Linking failed or wasn't confirmed in time (exit code " + exitCode + "). Run it again to retry.");
-            return;
+            throw new IllegalStateException("Signal device linking failed or wasn't confirmed in time (exit code " +
+                    exitCode + ")");
         }
         List<String> accounts = cli.listAccounts();
         System.out.println("Linked successfully" + (accounts.isEmpty() ? "." : " as " + accounts.get(0) + "."));
-
-        System.out.println();
-        System.out.println("A few settings the bot needs:");
-        settings.ensureForRun();
-        System.out.println();
-        System.out.println("All set. Start the bot with:  docker compose up -d");
     }
 
     private static void runBot(SignalCliProcess cli, Settings settings) throws Exception {
         List<String> accounts = cli.listAccounts();
         if (accounts.isEmpty()) {
-            throw new IllegalStateException("No linked Signal account found. Link one first:  docker compose run --rm signalmodbot link");
+            throw new IllegalStateException("No linked Signal account found. Set LINK_DEVICE=true and restart to link one.");
         }
         if (accounts.size() > 1) {
             throw new IllegalStateException("Found " + accounts.size() + " accounts " + accounts +

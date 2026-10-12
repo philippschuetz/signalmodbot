@@ -86,12 +86,13 @@ cp .env.example .env
 ### 2. Build the image
 
 ```sh
-BOT_COMMIT="$(git rev-parse --short HEAD)" docker compose build
+docker compose build \
+  --build-arg BOT_COMMIT="$(git rev-parse --short HEAD)"
 ```
 
-The build embeds the software version and short commit hash for `/info`.
-`SIGNAL_CLI_VERSION` can also be set in `.env` to select the signal-cli version
-used by the image (default: `0.14.9`).
+The build embeds the software version, short commit hash, and signal-cli version
+for `/info`. Set these build arguments on the build command; they are not
+runtime Compose settings.
 
 ### Publishing from GitHub Actions
 
@@ -104,16 +105,22 @@ write packages and publish attestations.
 
 ### 3. Link the bot to a Signal account (one-time)
 
-The bot runs `signal-cli link` and appears under **Settings -> Linked Devices**
-like Signal Desktop. No separate phone number is needed.
+Set `LINK_DEVICE=true` in `.env` before starting the container. Startup removes
+any existing signal-cli account configuration, runs `signal-cli link`, and
+prints a QR code. After scanning, the bot continues starting normally. The bot
+appears under **Settings -> Linked Devices** like Signal Desktop; no separate
+phone number is needed. Since `LINK_DEVICE=true` forces a fresh link every
+startup, change it back to `false` after linking and recreate the container:
 
 ```sh
-docker compose run --rm signalmodbot link
+docker compose up
+# After linking, set LINK_DEVICE=false in .env, then:
+docker compose up -d
 ```
 
-The QR code is printed in the terminal. On your phone, open **Signal ->
-Settings -> Linked Devices -> Link New Device** and scan it. The link command
-uses `DEVICE_NAME` from `.env` (default `signalmodbot`).
+On your phone, open **Signal -> Settings -> Linked Devices -> Link New Device**
+and scan the QR code printed in the container logs. The device name is
+configured by `DEVICE_NAME` (default `signalmodbot`).
 
 ### 4. Run it
 
@@ -135,11 +142,12 @@ DM it `/auth`, `/chats`, `/poll`, `/count`.
 |-----------------------------|----------|-------------|---------|
 | `ADMIN_TOKEN`               | yes      | -           | Shared secret the admin DMs to authenticate; set it in `.env` |
 | `SUMMARY_INTERVAL_MINUTES`  | no       | `10`        | Auto-summary cadence; `0` disables the timer |
-| `DEVICE_NAME`               | no       | `signalmodbot` | Name shown in the Linked Devices list when running `link` |
+| `DEVICE_NAME`               | no       | `signalmodbot` | Name shown in the Linked Devices list during first-time linking |
+| `LINK_DEVICE`               | no       | `false`     | If `true`, startup links a Signal device when no account is linked yet |
 | `TIME_ZONE`                 | no       | `UTC`       | IANA time-zone ID used for timestamps in summaries (for example, `Europe/Berlin`) |
 | `DATA_DIR`                  | fixed    | `/data`     | Container path for the persisted Signal account and bot state |
 
-These four variables are supplied to the container by Docker Compose and can
+These five variables are supplied to the container by Docker Compose and can
 be changed in `.env`. `ADMIN_TOKEN` and `SUMMARY_INTERVAL_MINUTES` override
 their saved settings when set; otherwise, the saved values are used.
 `TIME_ZONE` accepts a Java/IANA zone ID and defaults to UTC. `DATA_DIR` is fixed
@@ -166,10 +174,10 @@ Summary lines show message counts without listing sender names.
   `/data` volume as sensitive -- it holds the bot's Signal identity keys.
 - **`signal-cli` needs periodic updates.** Signal's servers reject clients
   older than ~3 months, so rebuild the image with a newer
-  `SIGNAL_CLI_VERSION` periodically (`docker build --build-arg
-  SIGNAL_CLI_VERSION=x.y.z .`). Current releases need JRE 25, which is why
-  the runtime image is `eclipse-temurin:25-jre`. The Dockerfile currently
-  pins signal-cli `0.14.9`.
+  `SIGNAL_CLI_VERSION` periodically (`docker compose build --build-arg
+  SIGNAL_CLI_VERSION=x.y.z`). Current releases need JRE 25, which is why
+  the runtime image is `eclipse-temurin:25-jre`. The default signal-cli
+  version is set once in the Dockerfile and can be overridden with a build arg.
 - Only text messages are logged for summaries; attachments are ignored.
 - **Phone-numberless ("Signal Login") primary accounts are untested.**
   `listAccounts()` can fall back to matching a UUID when no phone number is

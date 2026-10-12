@@ -7,7 +7,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -167,6 +169,17 @@ public class SignalCliProcess {
         }
         p.waitFor(30, TimeUnit.SECONDS);
         return accounts;
+    }
+
+    /** Removes signal-cli's account data before provisioning a replacement account. */
+    public void clearAccounts() throws IOException {
+        Path accountsDir = dataDir.resolve("data");
+        if (!Files.exists(accountsDir)) return;
+        try (var paths = Files.walk(accountsDir)) {
+            for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                Files.delete(path);
+            }
+        }
     }
 
     /** Starts `signal-cli -a <account> daemon --socket <path>` and returns once the socket file exists. */

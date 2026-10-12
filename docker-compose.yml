@@ -2,9 +2,6 @@ services:
   signalmodbot:
     build:
       context: .
-      args:
-        BOT_COMMIT: ${BOT_COMMIT:-unknown}
-        SIGNAL_CLI_VERSION: ${SIGNAL_CLI_VERSION:-0.14.9}
     image: signalmodbot:latest
     container_name: signalmodbot
     restart: unless-stopped
@@ -12,6 +9,7 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN:?Set ADMIN_TOKEN in .env}
       SUMMARY_INTERVAL_MINUTES: ${SUMMARY_INTERVAL_MINUTES:-10}
       DEVICE_NAME: ${DEVICE_NAME:-signalmodbot}
+      LINK_DEVICE: ${LINK_DEVICE:-false}
       TIME_ZONE: ${TIME_ZONE:-UTC}
     volumes:
       - ./data:/data

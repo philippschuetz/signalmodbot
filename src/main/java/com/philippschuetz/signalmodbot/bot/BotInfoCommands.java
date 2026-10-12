@@ -19,8 +19,8 @@ public final class BotInfoCommands {
     public String info() throws IOException {
         Attributes attributes = manifestAttributes();
         var version = value(attributes, "Implementation-Version", "development");
-        var commit = value(attributes, "Build-Commit", environmentOrUnknown("BOT_COMMIT"));
-        var signalCliVersion = environmentOrUnknown("SIGNAL_CLI_VERSION");
+        var commit = value(attributes, "Build-Commit", "unknown");
+        var signalCliVersion = value(attributes, "Signal-Cli-Version", "unknown");
         var timeZone = environmentOrUnknown("TIME_ZONE");
         if ("unknown".equals(timeZone)) timeZone = "UTC";
         String summaries = summaryIntervalMinutes == 0

@@ -14,6 +14,7 @@
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <build.commit>unknown</build.commit>
+    <signal.cli.version>unknown</signal.cli.version>
   </properties>
 
   <dependencies>
@@ -84,6 +85,7 @@
                   <manifestEntries>
                     <Implementation-Version>${project.version}</Implementation-Version>
                     <Build-Commit>${build.commit}</Build-Commit>
+                    <Signal-Cli-Version>${signal.cli.version}</Signal-Cli-Version>
                   </manifestEntries>
                 </transformer>
               </transformers>
