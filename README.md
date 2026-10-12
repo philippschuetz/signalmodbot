@@ -103,6 +103,11 @@ for `/info`, adds Docker metadata labels, and generates a build provenance
 attestation. Ensure the repository's Actions settings allow `GITHUB_TOKEN` to
 write packages and publish attestations.
 
+The `check-signal-cli.yml` workflow checks the latest stable signal-cli release
+daily and opens or updates a pull request when the Dockerfile's pinned version
+is behind. It can also be run manually from the Actions tab. Allow GitHub
+Actions to create pull requests in the repository's Actions settings.
+
 ### 3. Link the bot to a Signal account (one-time)
 
 Set `LINK_DEVICE=true` in `.env` before starting the container. Startup removes
