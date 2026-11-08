@@ -1,4 +1,4 @@
-ARG SIGNAL_CLI_VERSION=0.14.9
+ARG SIGNAL_CLI_VERSION=0.14.10
 
 # ---- Build stage: compile the Java app ----
 FROM docker.io/maven:3.9-eclipse-temurin-21 AS build
